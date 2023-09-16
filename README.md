@@ -56,13 +56,13 @@ def monte_carlo_pi(num_samples):
 
 The ratio of points inside the quarter-circle to the total number of points generated is given by:
 
-```math
+```formula
 \[ \frac{\text{inside_circle}}{\text{num_samples}} \]
 ```
 
 To estimate π, we multiply this ratio by 4:
 
-```math
+```formula
 \[ \text{Estimated π} = 4 \times \frac{\text{inside_circle}}{\text{num_samples}} \]
 ```
 
