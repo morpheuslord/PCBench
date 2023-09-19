@@ -1,5 +1,7 @@
 import random
 import time
+import threading
+import math
 import platform
 import os
 import assets.cpu_info as cpu_info
@@ -13,6 +15,11 @@ from rich import box
 
 num_samples = 100000
 num_iterations = 10
+benchmark_duration_fps = 20
+num_threads = 4
+benchmark_duration = 300
+computations_per_second = 1000000
+
 os_verson = platform.system()
 
 
@@ -54,6 +61,49 @@ def benchmark_pi_calculation(num_samples, num_iterations):
         f"Average Time for {num_iterations} iterations: {average_time:.4f} seconds")
 
 
+def calculate_performance(duration, computations):
+    total_computations = computations * (duration / 1.0)
+    performance = total_computations / duration
+    return performance
+
+
+def cpu_intensive_task(duration):
+    start_time = time.time()
+    while time.time() - start_time < duration:
+        pass
+
+
+def calculate_fps(frames, duration):
+    fps = frames / duration
+    return fps
+
+
+def multi_thread_benchmark(duration, num_threads):
+    print(Panel("Single-threaded FPS Benchmark"))
+    frames = 0
+    start_time = time.time()
+    while time.time() - start_time < duration:
+        cpu_intensive_task(0.01)
+        frames += 1
+    single_fps = calculate_fps(frames, duration)
+    print(f"Average FPS: {single_fps:.2f}")
+
+    print(Panel("Multi-threaded FPS Benchmark"))
+    frames = 0
+    start_time = time.time()
+    threads = []
+    for _ in range(num_threads):
+        thread = threading.Thread(
+            target=cpu_intensive_task, args=(duration/num_threads,))
+        thread.start()
+        threads.append(thread)
+    for thread in threads:
+        thread.join()
+        frames += int(duration/num_threads)
+    multi_fps = calculate_fps(frames, duration)
+    print(f"Average FPS: {multi_fps:.2f}")
+
+
 def bench(num_samples, num_iterations):
     clearscr()
     options = f"""
@@ -81,30 +131,18 @@ def bench(num_samples, num_iterations):
     benchmark_pi_calculation(num_samples, num_iterations)
 
 
-def cpu_bench():
+def pi_menu():
     global num_samples
     global num_iterations
-    clearscr()
-    cpu_bench_banner = """
-     _______  _______  __   __  _______  _______  __    _  _______  __   __
-    |       ||       ||  | |  ||  _    ||       ||  |  | ||       ||  | |  |
-    |       ||    _  ||  | |  || |_|   ||    ___||   |_| ||       ||  |_|  |
-    |       ||   |_| ||  |_|  ||       ||   |___ |       ||       ||       |
-    |      _||    ___||       ||  _   | |    ___||  _    ||      _||       |
-    |     |_ |   |    |       || |_|   ||   |___ | | |   ||     |_ |   _   |
-    |_______||___|    |_______||_______||_______||_|  |__||_______||__| |__|
-    """
-    cpu_banner = Markdown(cpu_bench_banner)
-    print(cpu_banner)
-    cpu_menu = Table()
-    cpu_menu.add_column("Option")
-    cpu_menu.add_column("Value")
-    cpu_menu.add_column("DefaultValue")
-    cpu_menu.add_row("1", "Change Num Samples", str(num_samples))
-    cpu_menu.add_row("2", "Change Num Iterations", str(num_iterations))
-    cpu_menu.add_row("3", "Change Both", "Your Customs")
-    cpu_menu.add_row("4", "Defaults", f"{num_samples}, {num_iterations}")
-    print(cpu_menu)
+    pi_menu_table = Table()
+    pi_menu_table.add_column("Option")
+    pi_menu_table.add_column("Value")
+    pi_menu_table.add_column("DefaultValue")
+    pi_menu_table.add_row("1", "Change Num Samples", str(num_samples))
+    pi_menu_table.add_row("2", "Change Num Iterations", str(num_iterations))
+    pi_menu_table.add_row("3", "Change Both", "Your Customs")
+    pi_menu_table.add_row("4", "Defaults", f"{num_samples}, {num_iterations}")
+    print(pi_menu_table)
     opt = input("Choose an option: ")
     match opt:
         case "1":
@@ -119,3 +157,71 @@ def cpu_bench():
             bench(int(num_samples), int(num_iterations))
         case "4":
             bench(int(num_samples), int(num_iterations))
+
+
+def fps_menu():
+    global benchmark_duration_fps
+    global num_threads
+    fps_menu_table = Table()
+    fps_menu_table.add_column("Option")
+    fps_menu_table.add_column("Value")
+    fps_menu_table.add_column("DefaultValue")
+    fps_menu_table.add_row(
+        "1", "Change Benchmark Duration", str(benchmark_duration_fps))
+    fps_menu_table.add_row("2", "Change Num of threads", str(num_threads))
+    fps_menu_table.add_row("3", "Change Both", "Your Customs")
+    fps_menu_table.add_row(
+        "4", "Defaults", f"{benchmark_duration_fps}, {num_threads}")
+    print(fps_menu_table)
+    opt = input("Choose an option: ")
+    match opt:
+        case "1":
+            benchmark_duration_fps = input("Enter the Benchmark Duration:")
+            multi_thread_benchmark(
+                int(benchmark_duration_fps), int(num_threads))
+        case "2":
+            num_threads = input("Enter the Num of threads:")
+            multi_thread_benchmark(
+                int(benchmark_duration_fps), int(num_threads))
+        case "3":
+            benchmark_duration_fps = input("Enter the Benchmark Duration:")
+            num_threads = input("Enter the Num of threads:")
+            multi_thread_benchmark(
+                int(benchmark_duration_fps), int(num_threads))
+        case "4":
+            multi_thread_benchmark(
+                int(benchmark_duration_fps), int(num_threads))
+
+
+def cpu_bench():
+    clearscr()
+    cpu_bench_banner = """
+     _______  _______  __   __  _______  _______  __    _  _______  __   __
+    |       ||       ||  | |  ||  _    ||       ||  |  | ||       ||  | |  |
+    |       ||    _  ||  | |  || |_|   ||    ___||   |_| ||       ||  |_|  |
+    |       ||   |_| ||  |_|  ||       ||   |___ |       ||       ||       |
+    |      _||    ___||       ||  _   | |    ___||  _    ||      _||       |
+    |     |_ |   |    |       || |_|   ||   |___ | | |   ||     |_ |   _   |
+    |_______||___|    |_______||_______||_______||_|  |__||_______||__| |__|
+    """
+    cpu_banner = Markdown(cpu_bench_banner)
+    print(cpu_banner)
+    cpu_menu = Table()
+    cpu_menu.add_column("Option")
+    cpu_menu.add_column("Benchmark")
+    cpu_menu.add_row("1", "PI Calculations")
+    cpu_menu.add_row("2", "FPS Benchmark")
+    cpu_menu.add_row("3", "Quit")
+    print(cpu_menu)
+    opt = input("Choose an option: ")
+    match opt:
+        case "1":
+            clearscr()
+            print(cpu_banner)
+            pi_menu()
+        case "2":
+            clearscr()
+            print(cpu_banner)
+            fps_menu()
+        case "3":
+            quit()
